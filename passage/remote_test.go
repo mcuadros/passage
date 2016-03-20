@@ -30,12 +30,23 @@ func (s *RemoteSuite) TestNewLocalhostRemote(c *C) {
 	c.Assert(a.String(), Equals, "127.0.0.1:42")
 }
 
+func (s *RemoteSuite) TestRemoteString(c *C) {
+	r := NewLocalhostRemote("tcp", "42")
+	c.Assert(r.String(), Equals, "localhost:42")
+}
+
 func (s *RemoteSuite) TestGetContainerIP(c *C) {
 	r := NewContainerRemote("foo", "42")
 	a, err := r.Addr(&SSHFixture{})
 	c.Assert(err, IsNil)
 	c.Assert(a.Network(), Equals, "tcp")
 	c.Assert(a.String(), Equals, "172.17.0.2:42")
+	c.Assert(r.String(), Equals, "<foo>172.17.0.2:42")
+}
+
+func (s *RemoteSuite) TestContainerRemoteString(c *C) {
+	r := NewContainerRemote("foo", "42")
+	c.Assert(r.String(), Equals, "<foo>::42")
 }
 
 type SSHFixture struct{}
@@ -51,4 +62,8 @@ func (s *SSHFixture) Conn(a net.Addr) (net.Conn, error) {
 
 func (s *SSHFixture) Tunnel(c net.Conn, a net.Addr) error {
 	return nil
+}
+
+func (s *SSHFixture) String() string {
+	return ""
 }

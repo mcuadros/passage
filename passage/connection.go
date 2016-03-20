@@ -12,6 +12,7 @@ import (
 type SSHConnection interface {
 	Tunnel(c net.Conn, a net.Addr) error
 	Conn(a net.Addr) (net.Conn, error)
+	fmt.Stringer
 }
 
 type sshConnection struct {
@@ -71,4 +72,8 @@ func (c *sshConnection) dialServerConnection() error {
 
 func (c *sshConnection) dialRemoteConnection(a net.Addr) (net.Conn, error) {
 	return c.client.Dial(a.Network(), a.String())
+}
+
+func (c *sshConnection) String() string {
+	return fmt.Sprintf("%s@%s", c.c.User, c.a)
 }

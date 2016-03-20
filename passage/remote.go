@@ -15,6 +15,7 @@ var supportedNetworks = map[string]bool{
 
 type Remote interface {
 	Addr(SSHConnection) (net.Addr, error)
+	fmt.Stringer
 }
 
 type addressRemote struct {
@@ -46,8 +47,13 @@ func (r *addressRemote) Addr(SSHConnection) (net.Addr, error) {
 	)
 }
 
+func (r *addressRemote) String() string {
+	return net.JoinHostPort(r.address, r.port)
+}
+
 type containerRemote struct {
 	container string
+	address   string
 	port      string
 }
 
@@ -60,12 +66,11 @@ func NewContainerRemote(container, port string) Remote {
 
 func (r *containerRemote) Addr(s SSHConnection) (net.Addr, error) {
 	c := r.buildClient(s)
-	ip, err := r.getContainerIP(c)
-	if err != nil {
+	if err := r.getContainerIP(c); err != nil {
 		return nil, err
 	}
 
-	return net.ResolveTCPAddr("tcp", net.JoinHostPort(ip, r.port))
+	return net.ResolveTCPAddr("tcp", net.JoinHostPort(r.address, r.port))
 }
 
 func (r *containerRemote) buildClient(s SSHConnection) *http.Client {
@@ -84,23 +89,24 @@ func (r *containerRemote) buildClient(s SSHConnection) *http.Client {
 	}
 }
 
-func (r *containerRemote) getContainerIP(c *http.Client) (string, error) {
+func (r *containerRemote) getContainerIP(c *http.Client) error {
 	l, err := r.getContainers(c)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	container, err := r.matchContainer(l)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	n, ok := container.NetworkSettings.Networks["bridge"]
 	if !ok {
-		return "", fmt.Errorf("container: not supported networks")
+		return fmt.Errorf("container: not supported networks")
 	}
 
-	return n.IPAddress, nil
+	r.address = n.IPAddress
+	return nil
 }
 
 type container struct {
@@ -150,4 +156,13 @@ func (r *containerRemote) getContainers(c *http.Client) ([]*container, error) {
 	}
 
 	return result, nil
+}
+
+func (r *containerRemote) String() string {
+	a := r.address
+	if a == "" {
+		a = ":"
+	}
+
+	return fmt.Sprintf("<%s>%s:%s", r.container, a, r.port)
 }
