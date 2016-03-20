@@ -1,4 +1,4 @@
-package passage
+package core
 
 import (
 	"golang.org/x/crypto/ssh"
