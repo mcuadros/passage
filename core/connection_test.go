@@ -11,7 +11,7 @@ var _ = Suite(&TunnelSuite{})
 
 func (s *TunnelSuite) TestString(c *C) {
 	ssh := NewSSHConnection(
-		MustResolveTCPAddr("tcp", "localhost:22"),
+		MustResolveAddr("tcp", "localhost:22"),
 		&ssh.ClientConfig{
 			User: "root",
 		},

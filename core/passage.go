@@ -28,3 +28,7 @@ func (p *Passage) buildListener(a net.Addr) {
 		return p.c.Tunnel(c, remote)
 	}
 }
+
+func (p *Passage) String() string {
+	return p.l.String()
+}

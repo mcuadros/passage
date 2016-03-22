@@ -64,14 +64,19 @@ func (c *sshConnection) dialServerConnection() error {
 	var err error
 	c.client, err = ssh.Dial(c.a.Network(), c.a.String(), c.c)
 	if err != nil {
-		return err
+		return fmt.Errorf("error dialing server: %s", err)
 	}
 
 	return nil
 }
 
 func (c *sshConnection) dialRemoteConnection(a net.Addr) (net.Conn, error) {
-	return c.client.Dial(a.Network(), a.String())
+	conn, err := c.client.Dial(a.Network(), a.String())
+	if err != nil {
+		return nil, fmt.Errorf("error dialing remote: %s", err)
+	}
+
+	return conn, nil
 }
 
 func (c *sshConnection) String() string {

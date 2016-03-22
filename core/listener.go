@@ -25,7 +25,7 @@ func (l *Listener) Start() error {
 	var err error
 	l.l, err = net.Listen(l.a.Network(), l.a.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating listener: %s", err)
 	}
 
 	go l.listen()

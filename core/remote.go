@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-var supportedNetworks = map[string]bool{
-	"udp": true, "udp4": true, "udp6": true,
-	"tcp": true, "tcp4": true, "tcp6": true,
-}
-
 type Remote interface {
 	Addr(SSHConnection) (net.Addr, error)
 	fmt.Stringer
@@ -25,10 +20,6 @@ type addressRemote struct {
 }
 
 func NewRemote(network, address, port string) Remote {
-	if _, ok := supportedNetworks[network]; !ok {
-		return nil
-	}
-
 	return &addressRemote{
 		network: network,
 		address: address,
@@ -37,7 +28,7 @@ func NewRemote(network, address, port string) Remote {
 }
 
 func NewLocalhostRemote(network, port string) Remote {
-	return NewRemote(network, "localhost", port)
+	return NewRemote(network, "127.0.0.1", port)
 }
 
 func (r *addressRemote) Addr(SSHConnection) (net.Addr, error) {
@@ -48,17 +39,19 @@ func (r *addressRemote) Addr(SSHConnection) (net.Addr, error) {
 }
 
 func (r *addressRemote) String() string {
-	return net.JoinHostPort(r.address, r.port)
+	return fmt.Sprintf("%s/%s", net.JoinHostPort(r.address, r.port), r.network)
 }
 
 type containerRemote struct {
+	network   string
 	container string
 	address   string
 	port      string
 }
 
-func NewContainerRemote(container, port string) Remote {
+func NewContainerRemote(network, container, port string) Remote {
 	return &containerRemote{
+		network:   network,
 		container: container,
 		port:      port,
 	}
@@ -164,5 +157,5 @@ func (r *containerRemote) String() string {
 		a = ":"
 	}
 
-	return fmt.Sprintf("<%s>%s:%s", r.container, a, r.port)
+	return fmt.Sprintf("<container=%s>%s:%s/%s", r.container, a, r.port, r.network)
 }
