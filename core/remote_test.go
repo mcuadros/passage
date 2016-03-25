@@ -15,15 +15,7 @@ type RemoteSuite struct{}
 var _ = Suite(&RemoteSuite{})
 
 func (s *RemoteSuite) TestNewRemote(c *C) {
-	r := NewRemote("tcp", "localhost", "42")
-	a, err := r.Addr(nil)
-	c.Assert(err, IsNil)
-	c.Assert(a.Network(), Equals, "tcp")
-	c.Assert(a.String(), Equals, "127.0.0.1:42")
-}
-
-func (s *RemoteSuite) TestNewLocalhostRemote(c *C) {
-	r := NewLocalhostRemote("tcp", "42")
+	r := NewRemote("tcp", "localhost:42")
 	a, err := r.Addr(nil)
 	c.Assert(err, IsNil)
 	c.Assert(a.Network(), Equals, "tcp")
@@ -31,8 +23,8 @@ func (s *RemoteSuite) TestNewLocalhostRemote(c *C) {
 }
 
 func (s *RemoteSuite) TestRemoteString(c *C) {
-	r := NewLocalhostRemote("tcp", "42")
-	c.Assert(r.String(), Equals, "localhost:42/tcp")
+	r := NewRemote("tcp", ":42")
+	c.Assert(r.String(), Equals, ":42/tcp")
 }
 
 func (s *RemoteSuite) TestGetContainerIP(c *C) {
@@ -41,12 +33,12 @@ func (s *RemoteSuite) TestGetContainerIP(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.Network(), Equals, "tcp")
 	c.Assert(a.String(), Equals, "172.17.0.2:42")
-	c.Assert(r.String(), Equals, "<foo>172.17.0.2:42/tcp")
+	c.Assert(r.String(), Equals, "<container=foo>172.17.0.2:42/tcp")
 }
 
 func (s *RemoteSuite) TestContainerRemoteString(c *C) {
 	r := NewContainerRemote("tcp", "foo", "42")
-	c.Assert(r.String(), Equals, "<foo>::42/tcp")
+	c.Assert(r.String(), Equals, "<container=foo>::42/tcp")
 }
 
 type SSHFixture struct{}

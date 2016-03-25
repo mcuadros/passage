@@ -16,30 +16,21 @@ type Remote interface {
 type addressRemote struct {
 	network string
 	address string
-	port    string
 }
 
-func NewRemote(network, address, port string) Remote {
+func NewRemote(network, address string) Remote {
 	return &addressRemote{
 		network: network,
 		address: address,
-		port:    port,
 	}
 }
 
-func NewLocalhostRemote(network, port string) Remote {
-	return NewRemote(network, "127.0.0.1", port)
-}
-
 func (r *addressRemote) Addr(SSHConnection) (net.Addr, error) {
-	return net.ResolveTCPAddr(
-		r.network,
-		net.JoinHostPort(r.address, r.port),
-	)
+	return net.ResolveTCPAddr(r.network, r.address)
 }
 
 func (r *addressRemote) String() string {
-	return fmt.Sprintf("%s/%s", net.JoinHostPort(r.address, r.port), r.network)
+	return fmt.Sprintf("%s/%s", r.address, r.network)
 }
 
 type containerRemote struct {

@@ -28,7 +28,7 @@ func (l *ListenCommand) Execute(args []string) error {
 		&ssh.ClientConfig{
 			User: l.User,
 			Auth: []ssh.AuthMethod{
-				SSHAgent(),
+				core.SSHAgent(),
 			},
 		},
 	)

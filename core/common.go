@@ -3,7 +3,11 @@ package core
 import (
 	"fmt"
 	"net"
+	"os"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 type Addr struct {
@@ -44,4 +48,12 @@ func MustResolveAddr(network, address string) *Addr {
 	}
 
 	return &Addr{a}
+}
+
+func SSHAgent() ssh.AuthMethod {
+	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
+		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
+	}
+
+	return nil
 }

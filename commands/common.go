@@ -3,11 +3,7 @@ package commands
 import (
 	"fmt"
 	"net"
-	"os"
 	"strings"
-
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 
 	"github.com/mcuadros/passage/core"
 )
@@ -42,68 +38,41 @@ type Remote struct {
 	core.Remote
 }
 
-//<kind>:address:port/proto
 func (r *Remote) UnmarshalFlag(value string) error {
-	network, err := r.getNetwork(value)
-	if err != nil {
-		return err
+	slash := strings.Split(value, "/")
+
+	network := "tcp"
+	if len(slash) == 2 {
+		network = slash[1]
 	}
 
-	if value[0] == ':' {
-		value = value[1:]
+	if slash[0][0] == ':' {
+		slash[0] = slash[0][1:]
 	}
 
-	dots := strings.Split(value, ":")
-	slash := strings.Split(dots[len(dots)-1], "/")
+	if strings.Count(slash[0], ":") == 0 {
+		r.Remote = core.NewRemote(network, fmt.Sprintf("127.0.0.1:%s", slash[0]))
+		return nil
+	}
 
-	switch len(dots) {
-	case 1:
-		r.Remote = core.NewLocalhostRemote(network, slash[0])
-	case 2:
-		if err := r.buildRemote(network, dots[0], slash[0]); err != nil {
-			return err
-		}
-	default:
+	equal := strings.Split(slash[0], "=")
+	if len(equal) == 1 {
+		r.Remote = core.NewRemote(network, slash[0])
+		return nil
+	}
+
+	dots := strings.Split(equal[1], ":")
+
+	fmt.Println(dots, equal)
+	switch equal[0] {
+	case "container":
+		r.Remote = core.NewContainerRemote(network, dots[0], dots[1])
+	}
+
+	if r.Remote == nil {
 		return fmt.Errorf("invalid remote format: %s", value)
+
 	}
 
-	return nil
-}
-
-func (r *Remote) buildRemote(network, address, port string) error {
-	parts := strings.Split(address, "=")
-	switch len(parts) {
-	case 1:
-		r.Remote = core.NewRemote(network, address, port)
-	case 2:
-		switch parts[0] {
-		case "container":
-			r.Remote = core.NewContainerRemote(network, parts[1], port)
-		default:
-			return fmt.Errorf("invalid remote kind: %s", parts[0])
-		}
-	default:
-		return fmt.Errorf("invalid remote address format: %s", address)
-	}
-
-	return nil
-}
-
-func (r *Remote) getNetwork(value string) (string, error) {
-	parts := strings.Split(value, "/")
-	switch len(parts) {
-	case 1:
-		return "tcp", nil
-	case 2:
-		return parts[1], nil
-	default:
-		return "", fmt.Errorf("invalid remote format: %s", value)
-	}
-}
-
-func SSHAgent() ssh.AuthMethod {
-	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
-		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
-	}
 	return nil
 }
