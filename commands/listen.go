@@ -2,29 +2,49 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"os/user"
 
 	"github.com/mcuadros/passage/core"
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
 
 type ListenCommand struct {
-	User string `long:"user" description:"ssh server user" default:""`
-	Addr Addr   `long:"addr" description:"local bind address" default:"localhost:0"`
-	Args struct {
-		Server ServerAddr `positional-arg-name:"server" description:"." required:"true"`
-		Remote Remote     `positional-arg-name:"remote" description:"." required:"true"`
-	} `positional-args:"yes"`
+	User   string
+	Addr   Addr
+	Server ServerAddr
+	Remote Remote
 }
 
-func (l *ListenCommand) Execute(args []string) error {
+func NewListenCommand() *ListenCommand {
+	return &ListenCommand{}
+}
+
+func (c *ListenCommand) Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "listen [ssh-server] [remote-addr]",
+		Short: "A brief description of your command",
+		Long:  `A longeraaaa description .`,
+		RunE:  c.Execute,
+	}
+
+	cmd.Flags().StringVar(&c.User, "user", "", "user used in the ssh connection, if empty the current one is used")
+	cmd.Flags().Var(&c.Addr, "addr", "local bind address")
+
+	return cmd
+}
+
+func (l *ListenCommand) Execute(cmd *cobra.Command, args []string) error {
+	if err := l.loadArgs(args); err != nil {
+		return err
+	}
+
 	if err := l.setUser(); err != nil {
 		return err
 	}
 
 	c := core.NewSSHConnection(
-		l.Args.Server,
+		l.Server,
 		&ssh.ClientConfig{
 			User: l.User,
 			Auth: []ssh.AuthMethod{
@@ -33,16 +53,37 @@ func (l *ListenCommand) Execute(args []string) error {
 		},
 	)
 
-	p := core.NewPassage(c, l.Args.Remote)
-	err := p.Start(l.Addr)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	p := core.NewPassage(c, l.Remote)
+
+	if err := p.Start(l.Addr); err != nil {
+		return err
 	}
 
-	fmt.Printf("(%s@%s)-[%s]->(%s)\n", l.User, l.Args.Server, l.Args.Remote, p)
+	fmt.Printf("(%s@%s)-[%s]->(%s)\n", l.User, l.Server, l.Remote, p)
 
 	select {}
+
+	return nil
+}
+
+func (l *ListenCommand) loadArgs(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing arguments: [ssh-server] [remote-addr]")
+	}
+
+	if len(args) != 2 {
+		return fmt.Errorf("invalid arguments: %s", args)
+	}
+
+	if err := l.Server.Set(args[0]); err != nil {
+		return err
+	}
+
+	if err := l.Remote.Set(args[1]); err != nil {
+		return err
+	}
+
+	fmt.Println(l.Server, l.Remote)
 
 	return nil
 }

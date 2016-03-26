@@ -12,19 +12,21 @@ type ServerAddr struct {
 	Addr
 }
 
-func (a *ServerAddr) UnmarshalFlag(value string) error {
+func (a *ServerAddr) Type() string { return "server-addr" }
+func (a *ServerAddr) Set(value string) error {
 	if strings.Index(value, ":") == -1 {
 		value = fmt.Sprintf("%s:22", value)
 	}
 
-	return a.Addr.UnmarshalFlag(value)
+	return a.Addr.Set(value)
 }
 
 type Addr struct {
 	core.Addr
 }
 
-func (a *Addr) UnmarshalFlag(value string) error {
+func (a *Addr) Type() string { return "addr" }
+func (a *Addr) Set(value string) error {
 	addr, err := net.ResolveTCPAddr("tcp", value)
 	if err != nil {
 		return err
@@ -34,11 +36,21 @@ func (a *Addr) UnmarshalFlag(value string) error {
 	return nil
 }
 
+func (a Addr) String() string {
+	if a.Addr.Addr == nil {
+		return "localhost:0"
+	}
+
+	return a.Addr.String()
+}
+
 type Remote struct {
 	core.Remote
 }
 
-func (r *Remote) UnmarshalFlag(value string) error {
+func (r *Remote) Type() string { return "remote" }
+
+func (r *Remote) Set(value string) error {
 	slash := strings.Split(value, "/")
 
 	network := "tcp"
@@ -63,10 +75,10 @@ func (r *Remote) UnmarshalFlag(value string) error {
 
 	dots := strings.Split(equal[1], ":")
 
-	fmt.Println(dots, equal)
 	switch equal[0] {
 	case "container":
 		r.Remote = core.NewContainerRemote(network, dots[0], dots[1])
+		return nil
 	}
 
 	if r.Remote == nil {

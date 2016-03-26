@@ -1,6 +1,9 @@
 package core
 
-import "net"
+import (
+	"fmt"
+	"net"
+)
 
 type Passage struct {
 	c SSHConnection
@@ -29,6 +32,18 @@ func (p *Passage) buildListener(a net.Addr) {
 	}
 }
 
-func (p *Passage) String() string {
+func (p *Passage) Addr() string {
+	if p.l == nil {
+		return "<nil>"
+	}
+
 	return p.l.String()
+}
+
+func (p *Passage) String() string {
+	if p.l == nil {
+		return "<nil>"
+	}
+
+	return fmt.Sprintf("(%s)-[%s]->(%s)", p.c, p.r, p.l)
 }
