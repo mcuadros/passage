@@ -30,7 +30,6 @@ func (c *ListenCommand) Command() *cobra.Command {
 
 	cmd.Flags().StringVar(&c.User, "user", "", "user used in the ssh connection, if empty the current one is used")
 	cmd.Flags().Var(&c.Addr, "addr", "local bind address")
-
 	return cmd
 }
 
@@ -81,8 +80,6 @@ func (l *ListenCommand) loadArgs(args []string) error {
 	if err := l.Remote.Set(args[1]); err != nil {
 		return err
 	}
-
-	fmt.Println(l.Server, l.Remote)
 
 	return nil
 }

@@ -23,7 +23,7 @@ func (s *RPCSuite) TestNewRPC(c *C) {
 	a, err := net.ResolveUnixAddr("unix", "/tmp/rpc.sock")
 	c.Assert(err, IsNil)
 
-	rpcServer := NewRPC(server)
+	rpcServer := NewRPCServer(server)
 	go rpcServer.Listen(a)
 	time.Sleep(100 * time.Millisecond)
 	defer rpcServer.Close()

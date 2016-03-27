@@ -8,29 +8,29 @@ import (
 	"github.com/mcuadros/passage/core"
 )
 
-type RPC struct {
+type RPCServer struct {
 	s *Server
 	l *core.Listener
 	r *rpc.Server
 }
 
-func NewRPC(s *Server) *RPC {
-	return &RPC{s: s}
+func NewRPCServer(s *Server) *RPCServer {
+	return &RPCServer{s: s}
 }
 
-func (r *RPC) Listen(a net.Addr) error {
+func (r *RPCServer) Listen(a net.Addr) error {
 	r.newRPCServer()
 	r.newListener(a)
 
 	return r.l.Start()
 }
 
-func (r *RPC) newRPCServer() {
+func (r *RPCServer) newRPCServer() {
 	r.r = rpc.NewServer()
 	r.r.RegisterName("Server", &RPCContainer{s: r.s})
 }
 
-func (r *RPC) newListener(a net.Addr) {
+func (r *RPCServer) newListener(a net.Addr) {
 	r.l = core.NewListener(a)
 	r.l.Handler = func(conn net.Conn) error {
 		r.r.ServeConn(conn)
@@ -38,7 +38,7 @@ func (r *RPC) newListener(a net.Addr) {
 	}
 }
 
-func (r *RPC) Close() error {
+func (r *RPCServer) Close() error {
 	if r.l == nil {
 		return nil
 	}

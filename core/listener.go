@@ -51,7 +51,7 @@ func (l *Listener) listen() {
 		go func(c net.Conn) {
 			err := l.Handler(c)
 			if err != nil {
-				fmt.Println("error handling connection", err)
+				log15.Error("error handling connection", "addr", l, "error", err)
 			}
 
 			c.Close()

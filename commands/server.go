@@ -2,6 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"net"
+	"os"
+	"os/signal"
 
 	"github.com/mcuadros/passage/server"
 
@@ -17,11 +20,16 @@ type ServerCommand struct {
 	ConfigFile string
 	Config     *server.Config
 	Server     *server.Server
+	RPCAddr    string
+	RPCServer  *server.RPCServer
+
+	done chan bool
 }
 
 func NewServerCommand() *ServerCommand {
 	return &ServerCommand{
 		Server: server.NewServer(),
+		done:   make(chan bool),
 	}
 }
 
@@ -33,22 +41,34 @@ func (c *ServerCommand) Command() *cobra.Command {
 		RunE:  c.Execute,
 	}
 
-	cmd.Flags().StringVar(&c.ConfigFile,
-		"config", "", "config file (default is $HOME/.passage.yaml)",
-	)
-
-	cmd.Flags().StringVar(&c.LogLevel,
-		"level", "info", "max log level enabled",
-	)
+	cmd.Flags().StringVar(&c.ConfigFile, "config", "", "config file (default is $HOME/.passage.yaml)")
+	cmd.Flags().StringVar(&c.LogFile, "log-file", "", "log file")
+	cmd.Flags().StringVar(&c.LogLevel, "log-level", "info", "max log level enabled")
+	cmd.Flags().StringVar(&c.RPCAddr, "rpc-addr", "/tmp/passage.sock", "passage rpc server address, is an unix socket.")
 
 	return cmd
 }
 
 func (c *ServerCommand) Execute(cmd *cobra.Command, args []string) error {
+	c.handleSignals()
 	if err := c.setupLogging(); err != nil {
 		return err
 	}
 
+	if err := c.setupServer(); err != nil {
+		return err
+	}
+
+	if err := c.setupRPCServer(); err != nil {
+		return err
+	}
+
+	<-c.done
+	log15.Info("server stopped successfully")
+	return nil
+}
+
+func (c *ServerCommand) setupServer() error {
 	if err := c.readConfig(); err != nil {
 		return err
 	}
@@ -66,7 +86,22 @@ func (c *ServerCommand) Execute(cmd *cobra.Command, args []string) error {
 		}
 	})
 
-	select {}
+	return nil
+}
+
+func (c *ServerCommand) setupRPCServer() error {
+	log15.Debug("rpc server started", "addr", c.RPCAddr)
+	a, err := net.ResolveUnixAddr("unix", c.RPCAddr)
+	if err != nil {
+		return err
+	}
+
+	c.RPCServer = server.NewRPCServer(c.Server)
+	if err := c.RPCServer.Listen(a); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *ServerCommand) readConfig() error {
@@ -103,15 +138,39 @@ func (c *ServerCommand) setupLogging() error {
 	format := log15.LogfmtFormat()
 
 	if c.LogFile != "" {
-		handler = log15.MultiHandler(
-			handler,
-			log15.Must.FileHandler(c.LogFile, format),
-		)
+		handler = log15.MultiHandler(handler, log15.Must.FileHandler(c.LogFile, format))
 	}
 
-	log15.Root().SetHandler(log15.CallerFileHandler(
-		log15.LvlFilterHandler(lvl, handler),
-	))
+	handler = log15.LvlFilterHandler(lvl, handler)
 
+	if lvl == log15.LvlDebug {
+		handler = log15.CallerFileHandler(log15.LvlFilterHandler(lvl, handler))
+	}
+
+	log15.Root().SetHandler(handler)
+	return nil
+}
+
+func (c *ServerCommand) handleSignals() {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt)
+	go func() {
+		<-signals
+		if err := c.stop(); err != nil {
+			log15.Error("error stopping services", "err", err.Error())
+		}
+	}()
+}
+
+func (c *ServerCommand) stop() error {
+	if err := c.Server.Close(); err != nil {
+		return err
+	}
+
+	if err := c.RPCServer.Close(); err != nil {
+		return err
+	}
+
+	c.done <- true
 	return nil
 }
