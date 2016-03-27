@@ -20,6 +20,10 @@ func (p *Passage) Start(a net.Addr) error {
 	return p.l.Start()
 }
 
+func (p *Passage) Close() error {
+	return p.l.Close()
+}
+
 func (p *Passage) buildListener(a net.Addr) {
 	p.l = NewListener(a)
 	p.l.Handler = func(c net.Conn) error {
@@ -41,9 +45,5 @@ func (p *Passage) Addr() string {
 }
 
 func (p *Passage) String() string {
-	if p.l == nil {
-		return "<nil>"
-	}
-
-	return fmt.Sprintf("(%s)-[%s]->(%s)", p.c, p.r, p.l)
+	return fmt.Sprintf("(%s)-[%s]", p.c, p.r)
 }

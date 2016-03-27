@@ -54,7 +54,6 @@ func (l *ListenCommand) Execute(cmd *cobra.Command, args []string) error {
 	)
 
 	p := core.NewPassage(c, l.Remote)
-
 	if err := p.Start(l.Addr); err != nil {
 		return err
 	}

@@ -13,23 +13,26 @@ type CommonSuite struct{}
 var _ = Suite(&CommonSuite{})
 
 func (s *CommonSuite) TestNewRemote(c *C) {
-	r, err := r.NewRemote("127.0.0.1:42/tcp")
+	r := &Remote{}
+	err := r.Set("127.0.0.1:42/tcp")
 	c.Assert(err, IsNil)
 	c.Assert(r.Remote.String(), Equals, "127.0.0.1:42/tcp")
 }
 
 func (s *CommonSuite) TestNewRemotePort(c *C) {
-	r, err := r.NewRemote("42")
+	r := &Remote{}
+	err := r.Set("42")
 	c.Assert(err, IsNil)
 	c.Assert(r.Remote.String(), Equals, "127.0.0.1:42/tcp")
 
-	r, err := r.NewRemote(":42")
+	err = r.Set(":42")
 	c.Assert(err, IsNil)
 	c.Assert(r.Remote.String(), Equals, "127.0.0.1:42/tcp")
 }
 
 func (s *CommonSuite) TestNewRemoteContainer(c *C) {
-	r, err := r.NewRemote("container=foo:42")
+	r := &Remote{}
+	err := r.Set("container=foo:42")
 	c.Assert(err, IsNil)
 	c.Assert(r.Remote.String(), Equals, "<container=foo>::42/tcp")
 }

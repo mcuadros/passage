@@ -13,11 +13,11 @@ type CommonSuite struct{}
 
 var _ = Suite(&CommonSuite{})
 
-func (s *CommonSuite) TestString(c *C) {
+func (s *CommonSuite) AATestString(c *C) {
 	config := &Config{
 		Servers: []SSHServerConfig{
 			{User: "foo", Address: "qux", Passages: []PassageConfig{
-				{RemoteConfig{Type: "bar", Address: "foo"}, "baz"},
+				{Remote: RemoteConfig{Type: "bar", Address: "foo"}, Local: "baz"},
 			}},
 		},
 	}

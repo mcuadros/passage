@@ -13,8 +13,9 @@ type SSHServerConfig struct {
 }
 
 type PassageConfig struct {
+	Name   string
 	Remote RemoteConfig
-	Local  string
+	Local  string `default:"127.0.0.1:0"`
 }
 
 type RemoteConfig struct {

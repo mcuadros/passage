@@ -107,18 +107,29 @@ func (s *Server) loadPassage(c core.SSHConnection, config *PassageConfig) (strin
 		return "", err
 	}
 
-	key := fmt.Sprintf("%s->%s", c, r)
+	p := core.NewPassage(c, r)
+
+	key := config.Name
+	if key == "" {
+		key = p.String()
+	}
+
 	if _, ok := s.passages[key]; ok {
 		return key, nil
 	}
 
-	p := core.NewPassage(c, r)
 	if err := p.Start(a); err != nil {
 		return key, err
 	}
 
 	s.passages[key] = p
-	log15.Info("new passage created", "ssh", c, "remote", r, "addr", p.Addr())
+
+	logArgs := log15.Ctx{"ssh": c, "remote": r, "addr": p.Addr()}
+	if config.Name != "" {
+		logArgs["name"] = config.Name
+	}
+
+	log15.Info("new passage created", logArgs)
 
 	return key, nil
 }
@@ -158,14 +169,14 @@ func (s *Server) cleanPassages(loadedPassages []string) {
 	log15.Debug("removed passages", "names", removed)
 }
 
-func contains(haystack []string, needle string) bool {
-	for _, e := range haystack {
-		if e == needle {
-			return true
+func (s *Server) Close() error {
+	for _, p := range s.passages {
+		if err := p.Close(); err != nil {
+			return err
 		}
 	}
 
-	return false
+	return nil
 }
 
 func (s *Server) String() string {
@@ -174,4 +185,14 @@ func (s *Server) String() string {
 	}
 
 	return "foo"
+}
+
+func contains(haystack []string, needle string) bool {
+	for _, e := range haystack {
+		if e == needle {
+			return true
+		}
+	}
+
+	return false
 }

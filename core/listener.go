@@ -2,23 +2,25 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"sync/atomic"
+
+	"gopkg.in/inconshreveable/log15.v2"
 )
 
 type ListenerHandler func(net.Conn) error
 
 type Listener struct {
-	a net.Addr
-	l net.Listener
+	a    net.Addr
+	l    net.Listener
+	done chan bool
 
 	Handler     ListenerHandler
 	Connections int32
 }
 
 func NewListener(a net.Addr) *Listener {
-	return &Listener{a: a}
+	return &Listener{a: a, done: make(chan bool)}
 }
 
 func (l *Listener) Start() error {
@@ -36,7 +38,13 @@ func (l *Listener) listen() {
 	for {
 		conn, err := l.l.Accept()
 		if err != nil {
-			log.Fatal(err)
+			if x, ok := err.(*net.OpError); ok && x.Op == "accept" { // We're done
+				log15.Debug("socket closed", "addr", l)
+				break
+			}
+
+			log15.Error("accept failer", "addr", l, "error", err)
+			continue
 		}
 
 		atomic.AddInt32(&l.Connections, 1)
