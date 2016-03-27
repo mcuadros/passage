@@ -9,8 +9,7 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "passage",
-	Short: "A brief description of your application",
-	Long:  `A longer description`,
+	Short: "Passage - SSH tunnels on steroids",
 }
 
 func init() {

@@ -18,8 +18,7 @@ func NewGetCommand() *GetCommand {
 func (c *GetCommand) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get [passage-name]",
-		Short: "A brief description of your command",
-		Long:  `A longeraaaa description .`,
+		Short: "get returns the local address from a passage",
 		RunE:  c.Execute,
 	}
 

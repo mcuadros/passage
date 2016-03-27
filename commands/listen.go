@@ -23,8 +23,7 @@ func NewListenCommand() *ListenCommand {
 func (c *ListenCommand) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "listen [ssh-server] [remote-addr]",
-		Short: "A brief description of your command",
-		Long:  `A longeraaaa description .`,
+		Short: "creates a SSH tunnel",
 		RunE:  c.Execute,
 	}
 

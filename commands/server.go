@@ -36,8 +36,7 @@ func NewServerCommand() *ServerCommand {
 func (c *ServerCommand) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "A brief description of your command",
-		Long:  `A longeraaaa description .`,
+		Short: "runs a passage server",
 		RunE:  c.Execute,
 	}
 
