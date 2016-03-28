@@ -9,7 +9,7 @@ Passage server allows you to have multiple SSH tunnels over the same SSH connect
 
 #### ok but what for is a SSH tunnel ...
 
-A [SSH tunnel](https://en.wikipedia.org/wiki/Tunneling_protocol#Secure_Shell_tunneling) forward a specified local port to a port on the remote machine with the only requirement of have SSH connection. 
+A [SSH tunnel](https://en.wikipedia.org/wiki/Tunneling_protocol#Secure_Shell_tunneling) forward a specified local port to a port on the remote machine with the only requirement of having a working SSH connection. 
 
 This can be done easily using a basic command on any *nix machine like `ssh example.com -L 80:localhost:80 -N`
 
