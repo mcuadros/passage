@@ -18,12 +18,11 @@ func NewGetCommand() *GetCommand {
 func (c *GetCommand) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get [passage-name]",
-		Short: "get returns the local address from a passage",
+		Short: "returns the local address from a passage",
 		RunE:  c.Execute,
 	}
 
-	cmd.Flags().StringVar(&c.RPCAddr, "rpc-addr", "/tmp/passage.sock", "passage rpc server address, is an unix socket.")
-
+	cmd.Flags().StringVar(&c.RPCAddr, "rpc-addr", rpcAddrDefault, "passage rpc server address, is an unix socket.")
 	return cmd
 }
 

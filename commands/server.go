@@ -36,15 +36,14 @@ func NewServerCommand() *ServerCommand {
 func (c *ServerCommand) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "runs a passage server",
+		Short: "runs a passage server, with multiple SSH tunnels",
 		RunE:  c.Execute,
 	}
 
 	cmd.Flags().StringVar(&c.ConfigFile, "config", "", "config file (default is $HOME/.passage.yaml)")
 	cmd.Flags().StringVar(&c.LogFile, "log-file", "", "log file")
 	cmd.Flags().StringVar(&c.LogLevel, "log-level", "info", "max log level enabled")
-	cmd.Flags().StringVar(&c.RPCAddr, "rpc-addr", "/tmp/passage.sock", "passage rpc server address, is an unix socket.")
-
+	cmd.Flags().StringVar(&c.RPCAddr, "rpc-addr", rpcAddrDefault, "passage rpc server address, is an unix socket.")
 	return cmd
 }
 
@@ -72,11 +71,11 @@ func (c *ServerCommand) setupServer() error {
 		return err
 	}
 
-	log15.Info("configuration file loaded", "file", viper.ConfigFileUsed())
 	if err := c.loadConfig(); err != nil {
 		return err
 	}
 
+	log15.Info("configuration file loaded", "file", viper.ConfigFileUsed())
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		log15.Info("configuration file re-loaded", "file", e.Name)
 		if err := c.loadConfig(); err != nil {
@@ -117,6 +116,10 @@ func (c *ServerCommand) readConfig() error {
 
 func (c *ServerCommand) loadConfig() error {
 	if err := viper.Unmarshal(&c.Config); err != nil {
+		return err
+	}
+
+	if err := c.Config.Validate(); err != nil {
 		return err
 	}
 

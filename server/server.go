@@ -3,13 +3,12 @@ package server
 import (
 	"fmt"
 	"net"
+	"strings"
 
-	"gopkg.in/inconshreveable/log15.v2"
+	"github.com/mcuadros/passage/core"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/mcuadros/go-defaults"
-	"github.com/mcuadros/passage/core"
+	"gopkg.in/inconshreveable/log15.v2"
 )
 
 type Server struct {
@@ -27,15 +26,19 @@ func NewServer() *Server {
 }
 
 func (s *Server) Load(c *Config) error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
 	var loadedServers, loadedPassages []string
 
-	for _, server := range c.Servers {
-		loadedServer, loadedPassage, err := s.loadSSHConnection(&server)
+	for name, server := range c.Servers {
+		loadedPassage, err := s.loadSSHConnection(name, server)
 		if err != nil {
 			return err
 		}
 
-		loadedServers = append(loadedServers, loadedServer)
+		loadedServers = append(loadedServers, name)
 		loadedPassages = append(loadedPassages, loadedPassage...)
 	}
 
@@ -44,25 +47,22 @@ func (s *Server) Load(c *Config) error {
 	return nil
 }
 
-func (s *Server) loadSSHConnection(config *SSHServerConfig) (string, []string, error) {
-	defaults.SetDefaults(config)
-
+func (s *Server) loadSSHConnection(name string, config *SSHServerConfig) ([]string, error) {
 	c, err := s.buildSSHConnection(config)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	key := c.String()
-	if _, ok := s.servers[key]; !ok {
-		s.servers[key] = c
+	if _, ok := s.servers[name]; !ok {
+		s.servers[name] = c
 	}
 
-	loadedPassages, err := s.loadPassages(s.servers[key], config)
+	loadedPassages, err := s.loadPassages(s.servers[name], config)
 	if err != nil {
-		return key, loadedPassages, err
+		return loadedPassages, err
 	}
 
-	return key, loadedPassages, nil
+	return loadedPassages, nil
 }
 
 func (s *Server) buildSSHConnection(config *SSHServerConfig) (core.SSHConnection, error) {
@@ -81,60 +81,47 @@ func (s *Server) buildSSHConnection(config *SSHServerConfig) (core.SSHConnection
 
 func (s *Server) loadPassages(c core.SSHConnection, config *SSHServerConfig) ([]string, error) {
 	var loadedPassages []string
-	for _, p := range config.Passages {
-		loaded, err := s.loadPassage(c, &p)
-		if err != nil {
+	for name, p := range config.Passages {
+		if err := s.loadPassage(c, name, p); err != nil {
 			return loadedPassages, err
 		}
 
-		loadedPassages = append(loadedPassages, loaded)
+		loadedPassages = append(loadedPassages, name)
 	}
 
 	return loadedPassages, nil
 
 }
 
-func (s *Server) loadPassage(c core.SSHConnection, config *PassageConfig) (string, error) {
-	defaults.SetDefaults(config)
-
-	r, err := s.buildRemote(&config.Remote)
+func (s *Server) loadPassage(c core.SSHConnection, name string, config *PassageConfig) error {
+	r, err := s.buildRemote(config)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	a, err := net.ResolveTCPAddr("tcp", config.Local)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	p := core.NewPassage(c, r)
-
-	key := config.Name
-	if key == "" {
-		key = p.String()
+	if _, ok := s.passages[name]; ok {
+		return nil
 	}
 
-	if _, ok := s.passages[key]; ok {
-		return key, nil
+	s.passages[name] = core.NewPassage(c, r)
+	if err := s.passages[name].Start(a); err != nil {
+		return err
 	}
 
-	if err := p.Start(a); err != nil {
-		return key, err
-	}
+	log15.Info(
+		"new passage created",
+		"name", name, "ssh", c, "remote", r, "addr", s.passages[name].Addr(),
+	)
 
-	s.passages[key] = p
-
-	logArgs := log15.Ctx{"ssh": c, "remote": r, "addr": p.Addr()}
-	if config.Name != "" {
-		logArgs["name"] = config.Name
-	}
-
-	log15.Info("new passage created", logArgs)
-
-	return key, nil
+	return nil
 }
 
-func (s *Server) buildRemote(config *RemoteConfig) (core.Remote, error) {
+func (s *Server) buildRemote(config *PassageConfig) (core.Remote, error) {
 	switch config.Type {
 	case "tcp":
 		return core.NewRemote("tcp", config.Address), nil
@@ -180,11 +167,12 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) String() string {
+	var out []string
 	for _, p := range s.passages {
-		fmt.Println(p)
+		out = append(out, p.String())
 	}
 
-	return "foo"
+	return strings.Join(out, "\n")
 }
 
 func contains(haystack []string, needle string) bool {

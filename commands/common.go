@@ -8,6 +8,8 @@ import (
 	"github.com/mcuadros/passage/core"
 )
 
+const rpcAddrDefault = "/tmp/passage.sock"
+
 type ServerAddr struct {
 	Addr
 }

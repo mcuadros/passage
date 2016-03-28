@@ -15,11 +15,11 @@ func (s *ServerSuite) TestNewServer(c *C) {
 	defer server.Close()
 
 	c.Assert(server.servers, HasLen, 1)
-	c.Assert(server.servers["root@127.0.0.1:22"], NotNil)
+	c.Assert(server.servers["baz"], NotNil)
 	c.Assert(server.passages, HasLen, 3)
 	c.Assert(server.passages["foo"], NotNil)
-	c.Assert(server.passages["(root@127.0.0.1:22)-[localhost:8400/tcp]"], NotNil)
-	c.Assert(server.passages["(root@127.0.0.1:22)-[localhost:8500/tcp]"], NotNil)
+	c.Assert(server.passages["bar"], NotNil)
+	c.Assert(server.passages["qux"], NotNil)
 }
 
 func (s *ServerSuite) TestLoadChangeServer(c *C) {
@@ -33,7 +33,7 @@ func (s *ServerSuite) TestLoadChangeServer(c *C) {
 	c.Assert(server.servers, HasLen, 1)
 	c.Assert(server.passages, HasLen, 3)
 
-	config.Servers[0].User = "qux"
+	config.Servers["baz"].User = "qux"
 	err = server.Load(config)
 	c.Assert(err, IsNil)
 	c.Assert(server.servers, HasLen, 1)
@@ -51,7 +51,7 @@ func (s *ServerSuite) TestLoadChangePassage(c *C) {
 	c.Assert(server.servers, HasLen, 1)
 	c.Assert(server.passages, HasLen, 3)
 
-	config.Servers[0].Passages[0].Remote.Type = "container"
+	config.Servers["baz"].Passages["foo"].Type = "container"
 	err = server.Load(config)
 	c.Assert(err, IsNil)
 	c.Assert(server.servers, HasLen, 1)
@@ -77,20 +77,25 @@ func (s *ServerSuite) TestLoadNoChange(c *C) {
 
 func getConfigFixture() *Config {
 	return &Config{
-		Servers: []SSHServerConfig{
-			{User: "root", Address: "localhost:22", Passages: []PassageConfig{
-				{
-					Name:   "foo",
-					Remote: RemoteConfig{Type: "tcp", Address: "localhost:8400"},
-					Local:  ":8400",
-				},
-				{
-					Remote: RemoteConfig{Type: "tcp", Address: "localhost:8400"},
-				},
-				{
-					Remote: RemoteConfig{Type: "tcp", Address: "localhost:8500"},
-				},
-			}},
+		Servers: map[string]*SSHServerConfig{
+			"baz": {
+				User:    "root",
+				Address: "localhost:22",
+				Passages: map[string]*PassageConfig{
+					"foo": {
+						Type:    "tcp",
+						Address: "localhost:8400",
+						Local:   ":8400",
+					},
+					"bar": {
+						Type:    "tcp",
+						Address: "localhost:8400",
+					},
+					"qux": {
+						Type:    "tcp",
+						Address: "localhost:8500",
+					},
+				}},
 		},
 	}
 }

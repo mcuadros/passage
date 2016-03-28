@@ -23,11 +23,11 @@ func NewListenCommand() *ListenCommand {
 func (c *ListenCommand) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "listen [ssh-server] [remote-addr]",
-		Short: "creates a SSH tunnel",
+		Short: "creates a standalone SSH tunnel",
 		RunE:  c.Execute,
 	}
 
-	cmd.Flags().StringVar(&c.User, "user", "", "user used in the ssh connection, if empty the current one is used")
+	cmd.Flags().StringVar(&c.User, "user", "", "user to be used in the ssh connection, if empty the current one is used")
 	cmd.Flags().Var(&c.Addr, "addr", "local bind address")
 	return cmd
 }
