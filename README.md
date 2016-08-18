@@ -22,7 +22,7 @@ tar -xvzf passage_v0.1.0_linux_amd64.tar.gz
 cp passage_v0.1.0_linux_amd64/passage /usr/local/bin/
 ```
 
-browse the [`releases`](https://github.com/curratore/passage/releases) section to see other archs and versions
+browse the [`releases`](https://github.com/mcuadros/passage/releases) section to see other archs and versions
 
 License
 -------
