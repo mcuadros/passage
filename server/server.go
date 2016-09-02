@@ -105,6 +105,7 @@ func (s *Server) loadPassage(c core.SSHConnection, name string, config *PassageC
 		return err
 	}
 
+	fmt.Println(name)
 	if _, ok := s.passages[name]; ok {
 		return nil
 	}

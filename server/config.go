@@ -28,6 +28,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	errs = append(errs, c.validatePassageNames()...)
 	if len(errs) != 0 {
 		return &ConfigError{errs}
 	}
@@ -35,8 +36,29 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+var msgDuplicatePassage = "ssh server %q: duplicate passage name %q, the passage name shoud be unique acrross all the SSH servers"
+
+func (c *Config) validatePassageNames() []error {
+	seen := map[string]bool{}
+	var errs []error
+
+	for server, s := range c.Servers {
+		for n := range s.Passages {
+			if seen[n] {
+				errs = append(errs, fmt.Errorf(msgDuplicatePassage, server, n))
+				continue
+			}
+
+			seen[n] = true
+
+		}
+	}
+
+	return errs
+}
+
 type SSHServerConfig struct {
-	User     string `default:"root"`
+	User     string
 	Timeout  time.Duration
 	Address  string
 	Retries  int

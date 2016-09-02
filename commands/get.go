@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net"
 	"net/rpc"
 
 	"github.com/spf13/cobra"
@@ -42,6 +43,15 @@ func (l *GetCommand) Execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf(reply)
+	host, port, err := net.SplitHostPort(reply)
+	if err != nil {
+		return err
+	}
+
+	if net.ParseIP(host).IsUnspecified() {
+		host = "127.0.0.1"
+	}
+
+	fmt.Printf("%s:%s", host, port)
 	return nil
 }
