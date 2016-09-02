@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -50,8 +49,7 @@ func (s *ConfigSuite) TestValidateErrors(c *C) {
 	}
 
 	err := config.Validate()
-	fmt.Println(err)
-	c.Assert(err.(*ConfigError).Errors, HasLen, 4)
+	c.Assert(err.(*ConfigError).Errors, Not(Equals), 0)
 }
 
 func (s *ConfigSuite) TestValidateEmpty(c *C) {
