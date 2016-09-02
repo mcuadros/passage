@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -16,14 +17,16 @@ type SSHConnection interface {
 }
 
 type sshConnection struct {
-	a net.Addr
-	c *ssh.ClientConfig
+	a          net.Addr
+	c          *ssh.ClientConfig
+	maxRetries int
 
-	client *ssh.Client
+	connected bool
+	client    *ssh.Client
 }
 
-func NewSSHConnection(a net.Addr, c *ssh.ClientConfig) SSHConnection {
-	return &sshConnection{a: a, c: c}
+func NewSSHConnection(a net.Addr, c *ssh.ClientConfig, retries int) SSHConnection {
+	return &sshConnection{a: a, c: c, maxRetries: retries}
 }
 
 func (s *sshConnection) Tunnel(c net.Conn, a net.Addr) error {
@@ -48,29 +51,34 @@ func (s *sshConnection) Tunnel(c net.Conn, a net.Addr) error {
 	return nil
 }
 
-func (s *sshConnection) Conn(a net.Addr) (net.Conn, error) {
-	if err := s.dialServerConnection(); err != nil {
-		return nil, err
+func (c *sshConnection) Conn(a net.Addr) (net.Conn, error) {
+	conn, err := c.dialRemoteConnection(a)
+	if err == nil {
+		return conn, nil
 	}
 
-	return s.dialRemoteConnection(a)
-}
+	c.connected = false
+	var retries int
+	for range time.Tick(5 * time.Second) {
+		conn, err := c.dialRemoteConnection(a)
+		if err == nil {
+			return conn, nil
+		}
 
-func (c *sshConnection) dialServerConnection() error {
-	if c.client != nil {
-		return nil
+		retries++
+		if retries > c.maxRetries {
+			return nil, fmt.Errorf("%s, after %d retries", err, retries-1)
+		}
 	}
 
-	var err error
-	c.client, err = ssh.Dial(c.a.Network(), c.a.String(), c.c)
-	if err != nil {
-		return fmt.Errorf("error dialing server: %s", err)
-	}
-
-	return nil
+	panic("unrechable")
 }
 
 func (c *sshConnection) dialRemoteConnection(a net.Addr) (net.Conn, error) {
+	if err := c.dialServerConnection(); err != nil {
+		return nil, err
+	}
+
 	conn, err := c.client.Dial(a.Network(), a.String())
 	if err != nil {
 		return nil, fmt.Errorf("error dialing remote: %s", err)
@@ -79,6 +87,21 @@ func (c *sshConnection) dialRemoteConnection(a net.Addr) (net.Conn, error) {
 	return conn, nil
 }
 
+func (c *sshConnection) dialServerConnection() error {
+	if c.connected {
+		return nil
+	}
+
+	c.c.Timeout = time.Second * 5
+	var err error
+	c.client, err = ssh.Dial(c.a.Network(), c.a.String(), c.c)
+	if err != nil {
+		return fmt.Errorf("error dialing server: %s", err)
+	}
+
+	c.connected = true
+	return nil
+}
 func (c *sshConnection) String() string {
 	return fmt.Sprintf("%s@%s", c.c.User, c.a)
 }

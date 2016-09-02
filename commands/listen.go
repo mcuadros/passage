@@ -5,6 +5,7 @@ import (
 	"os/user"
 
 	"github.com/mcuadros/passage/core"
+	"github.com/mcuadros/passage/server"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
@@ -44,11 +45,13 @@ func (l *ListenCommand) Execute(cmd *cobra.Command, args []string) error {
 	c := core.NewSSHConnection(
 		l.Server,
 		&ssh.ClientConfig{
-			User: l.User,
+			User:    l.User,
+			Timeout: server.DefaultTimeout,
 			Auth: []ssh.AuthMethod{
 				core.SSHAgent(),
 			},
 		},
+		server.DefaultRetries,
 	)
 
 	p := core.NewPassage(c, l.Remote)

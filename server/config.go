@@ -2,7 +2,9 @@ package server
 
 import (
 	"fmt"
+	"os/user"
 	"strings"
+	"time"
 
 	"github.com/mcuadros/go-defaults"
 	"gopkg.in/yaml.v1"
@@ -35,12 +37,43 @@ func (c *Config) Validate() error {
 
 type SSHServerConfig struct {
 	User     string `default:"root"`
+	Timeout  time.Duration
 	Address  string
+	Retries  int
 	Passages map[string]*PassageConfig
 }
 
+const (
+	DefaultTimeout = 5 * time.Second
+	DefaultRetries = 3
+)
+
+func (c *SSHServerConfig) defaults() error {
+	if c.User == "" {
+		u, err := user.Current()
+		if err != nil {
+			return err
+		}
+
+		c.User = u.Name
+	}
+
+	if c.Timeout == 0 {
+		c.Timeout = DefaultTimeout
+	}
+
+	if c.Retries == 0 {
+		c.Retries = DefaultRetries
+	}
+
+	return nil
+}
+
 func (c *SSHServerConfig) validate(name string) []error {
-	defaults.SetDefaults(c)
+	if err := c.defaults(); err != nil {
+		return []error{err}
+	}
+
 	var errs []error
 
 	if c.User == "" {

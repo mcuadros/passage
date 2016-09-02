@@ -22,9 +22,8 @@ func (s *ConfigSuite) TestString(c *C) {
 		},
 	}
 
-	y, err := config.Marshal()
+	_, err := config.Marshal()
 	c.Assert(err, IsNil)
-	fmt.Println(string(y))
 }
 
 func (s *ConfigSuite) TestValidate(c *C) {

@@ -14,7 +14,7 @@ func (s *TunnelSuite) TestString(c *C) {
 		MustResolveAddr("tcp", "localhost:22"),
 		&ssh.ClientConfig{
 			User: "root",
-		},
+		}, 1,
 	)
 
 	c.Assert(ssh.String(), Equals, "root@127.0.0.1:22")

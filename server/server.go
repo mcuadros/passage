@@ -72,11 +72,12 @@ func (s *Server) buildSSHConnection(config *SSHServerConfig) (core.SSHConnection
 	}
 
 	return core.NewSSHConnection(a, &ssh.ClientConfig{
-		User: config.User,
+		User:    config.User,
+		Timeout: config.Timeout,
 		Auth: []ssh.AuthMethod{
 			core.SSHAgent(),
 		},
-	}), nil
+	}, config.Retries), nil
 }
 
 func (s *Server) loadPassages(c core.SSHConnection, config *SSHServerConfig) ([]string, error) {
