@@ -36,8 +36,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-var msgDuplicatePassage = "ssh server %q: duplicate passage name %q, the passage name shoud be unique acrross all the SSH servers"
-
 func (c *Config) validatePassageNames() []error {
 	seen := map[string]bool{}
 	var errs []error
@@ -45,7 +43,10 @@ func (c *Config) validatePassageNames() []error {
 	for server, s := range c.Servers {
 		for n := range s.Passages {
 			if seen[n] {
-				errs = append(errs, fmt.Errorf(msgDuplicatePassage, server, n))
+				errs = append(errs,
+					fmt.Errorf("ssh server %q: duplicate passage name %q", server, n),
+				)
+
 				continue
 			}
 

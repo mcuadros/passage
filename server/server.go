@@ -71,12 +71,15 @@ func (s *Server) buildSSHConnection(config *SSHServerConfig) (core.SSHConnection
 		return nil, err
 	}
 
+	agent, err := core.SSHAgent()
+	if err != nil {
+		return nil, err
+	}
+
 	return core.NewSSHConnection(a, &ssh.ClientConfig{
 		User:    config.User,
 		Timeout: config.Timeout,
-		Auth: []ssh.AuthMethod{
-			core.SSHAgent(),
-		},
+		Auth:    []ssh.AuthMethod{agent},
 	}, config.Retries), nil
 }
 
@@ -105,7 +108,6 @@ func (s *Server) loadPassage(c core.SSHConnection, name string, config *PassageC
 		return err
 	}
 
-	fmt.Println(name)
 	if _, ok := s.passages[name]; ok {
 		return nil
 	}

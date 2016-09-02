@@ -102,6 +102,7 @@ func (c *sshConnection) dialServerConnection() error {
 	c.connected = true
 	return nil
 }
+
 func (c *sshConnection) String() string {
 	return fmt.Sprintf("%s@%s", c.c.User, c.a)
 }

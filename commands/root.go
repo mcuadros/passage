@@ -13,7 +13,6 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(NewServerCommand().Command())
-	RootCmd.AddCommand(NewListenCommand().Command())
 	RootCmd.AddCommand(NewGetCommand().Command())
 }
 

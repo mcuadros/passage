@@ -50,10 +50,11 @@ func MustResolveAddr(network, address string) *Addr {
 	return &Addr{a}
 }
 
-func SSHAgent() ssh.AuthMethod {
-	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
-		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
+func SSHAgent() (ssh.AuthMethod, error) {
+	sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+	if err == nil {
+		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers), nil
 	}
 
-	return nil
+	return nil, err
 }
