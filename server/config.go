@@ -78,7 +78,7 @@ func (c *SSHServerConfig) defaults() error {
 			return err
 		}
 
-		c.User = u.Name
+		c.User = u.Username
 	}
 
 	if c.Timeout == 0 {
