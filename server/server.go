@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"net"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 type Server struct {
 	c *Config
+	f fingerprints
 
 	servers  map[string]core.SSHConnection
 	passages map[string]*core.Passage
@@ -20,6 +22,7 @@ type Server struct {
 
 func NewServer() *Server {
 	return &Server{
+		f:        make(fingerprints),
 		servers:  make(map[string]core.SSHConnection, 0),
 		passages: make(map[string]*core.Passage, 0),
 	}
@@ -53,7 +56,7 @@ func (s *Server) loadSSHConnection(name string, config *SSHServerConfig) ([]stri
 		return nil, err
 	}
 
-	if _, ok := s.servers[name]; !ok {
+	if s.f.IsNewSSHServer(name, config) {
 		s.servers[name] = c
 	}
 
@@ -86,7 +89,7 @@ func (s *Server) buildSSHConnection(config *SSHServerConfig) (core.SSHConnection
 func (s *Server) loadPassages(c core.SSHConnection, config *SSHServerConfig) ([]string, error) {
 	var loadedPassages []string
 	for name, p := range config.Passages {
-		if err := s.loadPassage(c, name, p); err != nil {
+		if err := s.loadPassage(c, config, name, p); err != nil {
 			return loadedPassages, err
 		}
 
@@ -97,7 +100,9 @@ func (s *Server) loadPassages(c core.SSHConnection, config *SSHServerConfig) ([]
 
 }
 
-func (s *Server) loadPassage(c core.SSHConnection, name string, config *PassageConfig) error {
+func (s *Server) loadPassage(
+	c core.SSHConnection, sc *SSHServerConfig, name string, config *PassageConfig,
+) error {
 	r, err := s.buildRemote(config)
 	if err != nil {
 		return err
@@ -108,8 +113,14 @@ func (s *Server) loadPassage(c core.SSHConnection, name string, config *PassageC
 		return err
 	}
 
-	if _, ok := s.passages[name]; ok {
+	if !s.f.IsNewPassage(name, sc, config) {
 		return nil
+	}
+
+	if _, ok := s.passages[name]; ok {
+		if err := s.passages[name].Close(); err != nil {
+			return err
+		}
 	}
 
 	s.passages[name] = core.NewPassage(c, r)
@@ -187,4 +198,36 @@ func contains(haystack []string, needle string) bool {
 	}
 
 	return false
+}
+
+type fingerprints map[string][20]byte
+
+func (fp *fingerprints) IsNewSSHServer(id string, c *SSHServerConfig) bool {
+	hash := fp.fpSSHServer(c)
+	if (*fp)[id] == hash {
+		return false
+	}
+
+	(*fp)[id] = hash
+	return true
+}
+
+func (fp *fingerprints) fpSSHServer(c *SSHServerConfig) [20]byte {
+	payload := fmt.Sprintf("%s,%d,%s,%s", c.Address, c.Retries, c.Timeout, c.User)
+	return sha1.Sum([]byte(payload))
+}
+
+func (fp *fingerprints) IsNewPassage(id string, s *SSHServerConfig, p *PassageConfig) bool {
+	hash := fp.fpPassage(s, p)
+	if (*fp)[id] == hash {
+		return false
+	}
+
+	(*fp)[id] = hash
+	return true
+}
+
+func (fp *fingerprints) fpPassage(s *SSHServerConfig, p *PassageConfig) [20]byte {
+	payload := fmt.Sprintf("%v,%s", p, fp.fpSSHServer(s))
+	return sha1.Sum([]byte(payload))
 }

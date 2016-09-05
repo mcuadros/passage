@@ -13,6 +13,7 @@ import (
 type SSHConnection interface {
 	Tunnel(c net.Conn, a net.Addr) error
 	Conn(a net.Addr) (net.Conn, error)
+	Config() *ssh.ClientConfig
 	fmt.Stringer
 }
 
@@ -27,6 +28,10 @@ type sshConnection struct {
 
 func NewSSHConnection(a net.Addr, c *ssh.ClientConfig, retries int) SSHConnection {
 	return &sshConnection{a: a, c: c, maxRetries: retries}
+}
+
+func (s *sshConnection) Config() *ssh.ClientConfig {
+	return s.c
 }
 
 func (s *sshConnection) Tunnel(c net.Conn, a net.Addr) error {

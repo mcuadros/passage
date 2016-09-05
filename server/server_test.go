@@ -31,12 +31,14 @@ func (s *ServerSuite) TestLoadChangeServer(c *C) {
 	defer server.Close()
 
 	c.Assert(server.servers, HasLen, 1)
+	c.Assert(server.servers["baz"].Config().User, Equals, "root")
 	c.Assert(server.passages, HasLen, 3)
 
 	config.Servers["baz"].User = "qux"
 	err = server.Load(config)
 	c.Assert(err, IsNil)
 	c.Assert(server.servers, HasLen, 1)
+	c.Assert(server.servers["baz"].Config().User, Equals, "qux")
 	c.Assert(server.passages, HasLen, 3)
 }
 
